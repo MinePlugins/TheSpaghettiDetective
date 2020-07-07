@@ -13,6 +13,7 @@ import json
 import io
 from PIL import Image
 
+from .authentication import PrinterAuthentication
 from lib.file_storage import save_file_obj
 from lib import redis
 from lib.image import overlay_detections
@@ -68,6 +69,7 @@ def pause_if_needed(printer):
 
 class OctoPrintPicView(APIView):
     permission_classes = (IsAuthenticated,)
+    authentication_classes = (PrinterAuthentication,)
     parser_classes = (MultiPartParser,)
 
     def post(self, request):
@@ -100,6 +102,9 @@ class OctoPrintPicView(APIView):
         update_prediction_with_detections(prediction, detections)
         prediction.save()
 
+        if prediction.current_p > settings.THRESHOLD_LOW * 0.2:  # Select predictions high enough for focused feedback
+            redis.print_high_prediction_add(printer.current_print.id, prediction.current_p, pic_id)
+
         pic.file.seek(0)  # Reset file object pointer so that we can load it again
         tagged_img = io.BytesIO()
         detections_to_visualize = [d for d in detections if d[1] > VISUALIZATION_THRESH]
@@ -125,6 +130,7 @@ class OctoPrintPicView(APIView):
 
 
 class OctoPrintPingView(APIView):
+    authentication_classes = (PrinterAuthentication,)
     permission_classes = (IsAuthenticated,)
 
     def get(self, request):

@@ -1,10 +1,12 @@
-const BundleTracker = require("webpack-bundle-tracker");
+const BundleTracker = require('webpack-bundle-tracker')
+const path = require('path')
+const webpack = require('webpack')
 
 let publicPath = process.env.NODE_ENV === 'production'
-  ? '/static/frontend' : 'http://localhost:7070/'
+    ? '/static/frontend' : 'http://localhost:7070/'
 
 let outputDir = process.env.NODE_ENV === 'production'
-  ? './builds/frontend' : './dev-builds/frontend'
+    ? './builds/frontend' : './dev-builds/frontend'
 
 publicPath = process.env.PUBLIC_PATH || publicPath
 outputDir = process.env.OUTPUT_DIR || outputDir
@@ -14,7 +16,18 @@ let vueConfig = {
     outputDir: outputDir,
     runtimeCompiler: true,
     filenameHashing: false,
-    css: {sourceMap: true},
+    css: { sourceMap: true },
+
+    configureWebpack: {
+      resolve: {
+        alias: {
+          main: path.join(__dirname, 'src/main'),
+          common: path.join(__dirname, 'src/common'),
+          lib: path.join(__dirname, 'src/lib'),
+        }
+      },
+
+    },
 
     pages: {
         main: {
@@ -29,6 +42,9 @@ let vueConfig = {
         print_shot_feedback: {
             entry: 'src/print_shot_feedback/main.js',
         },
+        prints: {
+            entry: 'src/prints/main.js',
+        },
     },
 
     chainWebpack: config => {
@@ -38,8 +54,31 @@ let vueConfig = {
             config.plugins.delete('prefetch-' + key);
         });
 
-        config.optimization
-            .splitChunks(false)
+        config.plugin('ignore-plugin').use(webpack.IgnorePlugin, [/^\.\/locale$/, /moment$/])
+
+        if (process.env.NODE_ENV != 'production') {
+            config.optimization
+                .splitChunks(false)
+        } else {
+            config.optimization
+                .splitChunks({
+                     cacheGroups: {
+                       vendors: {
+                         name: 'chunk-vendors',
+                         test: /[\\/]node_modules[\\/]/,
+                         priority: -10,
+                         chunks: 'initial'
+                       },
+                       // common: {
+                       //   name: 'chunk-common',
+                       //   minChunks: 2,
+                       //   priority: -20,
+                       //   chunks: 'initial',
+                       //   reuseExistingChunk: true
+                       // }
+                     }
+                })
+        }
 
         if (process.env.NODE_ENV != 'production') {
             config
@@ -61,11 +100,11 @@ let vueConfig = {
             .clientLogLevel("debug")
             .progress(true)
             .hotOnly(true)
-            .watchOptions({poll: 1000})
+            .watchOptions({ poll: 1000 })
             .https(false)
-            .headers({"Access-Control-Allow-Origin": "*"})
-            }
+            .headers({ "Access-Control-Allow-Origin": "*" })
+    }
 
-        };
+};
 
 module.exports = vueConfig;

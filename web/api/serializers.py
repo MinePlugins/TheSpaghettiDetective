@@ -2,7 +2,6 @@ from rest_framework import serializers
 from django.utils.timezone import now
 
 from app.models import *
-from app.models import PrintShotFeedback
 
 
 class PrinterPredictionSerializer(serializers.ModelSerializer):
@@ -12,11 +11,28 @@ class PrinterPredictionSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 
+class PrintShotFeedbackSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = PrintShotFeedback
+        fields = ('id', 'print_id', 'image_url', 'answer', 'answered_at')
+        read_only_fields = ('id', 'url', 'image_url', 'answered_at')
+
+    def update(self, instance, validated_data):
+        if 'answer' in validated_data:
+            instance.answered_at = now()
+
+        return super().update(instance, validated_data)
+
+
 class PrintSerializer(serializers.ModelSerializer):
+    printshotfeedback_set = PrintShotFeedbackSerializer(many=True, read_only=True)
 
     class Meta:
         model = Print
-        fields = '__all__'
+        fields = ('id', 'printer', 'filename', 'started_at', 'finished_at', 'cancelled_at', 'uploaded_at', 'alerted_at', 'alert_acknowledged_at',
+                  'alert_muted_at', 'paused_at', 'video_url', 'tagged_video_url', 'poster_url', 'prediction_json_url', 'alert_overwrite', 'access_consented_at', 'printshotfeedback_set')
+        read_only_fields = ('id', 'printer', 'printshotfeedback_set')
 
 
 class PrinterSerializer(serializers.ModelSerializer):
@@ -38,18 +54,10 @@ class GCodeFileSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 
-class PrintShotFeedbackSerializer(serializers.ModelSerializer):
+# For public APIs
+
+class PublicPrinterSerializer(serializers.ModelSerializer):
 
     class Meta:
-        model = PrintShotFeedback
-        fields = ('id', 'print_id', 'image_url', 'answer', 'answered_at')
-        read_only_fields = ('id', 'url', 'image_url', 'answered_at')
-
-    def update(self, instance, validated_data):
-        if 'answer' in validated_data:
-            if validated_data['answer'] != PrintShotFeedback.UNANSWERED:
-                instance.answered_at = now()
-            else:
-                instance.answered_at = None
-
-        return super().update(instance, validated_data)
+        model = Printer
+        fields = ('name',)

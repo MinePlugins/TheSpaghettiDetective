@@ -1,10 +1,10 @@
 import Vue from 'vue'
-import VueSwal from 'vue-swal'
+import VueSwal from 'common/VueSwal'
 
 Vue.use(VueSwal)
 
-import App from './App.vue'
+import App from './PrintShotFeedbackApp.vue'
 
 new Vue({
-  components: {App}
-}).$mount("#print-shot-feedback-mount")
+  components: { App }
+}).$mount('#print-shot-feedback-mount')

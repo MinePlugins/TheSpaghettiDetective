@@ -4,13 +4,22 @@ ARG uid=0
 ARG gid=0
 ARG user=root
 ARG group=root
+ARG with_node=0
+ARG with_sqlite=0
+
+RUN if [[ "$with_node" == 1 ]]; then \
+    apk add --no-cache --update inotify-tools nodejs npm && npm install -g yarn \
+    ; fi && \
+    if [[ "$with_sqlite" == 1 ]]; then \
+    apk add --no-cache sqlite \
+    ; fi
 
 RUN if [[ "$uid" != 0 ]]; then \
-    addgroup --gid $gid $group && \
-    adduser --disabled-password --uid $uid --ingroup $group $user && \
+    (addgroup --gid $gid $group || echo "group with gid $gid exists") && \
+    adduser --disabled-password --uid $uid --ingroup $(cat /etc/group|grep ":$gid:" |cut -d: -f1) $user && \
     mkdir -p /home/$user /home/$user/.cache /home/$user/.ipython /home/$user/.local && \
     mkdir -p /app/ /app/frontend /app/static_build && \
-    chown -R $user:$group /app /home/$user \
+    chown -R $uid:$gid /app /home/$user \
     ; fi
 
 USER $user
